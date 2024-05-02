@@ -8,6 +8,9 @@
 
 ## Screenshots
 
+| Home  | Settings |
+|--------|-------|
+| ![Home](./screenshots/home.jpg) |![Settings](./screenshots/configs.jpg) |
 
 ## Roadmap
 
