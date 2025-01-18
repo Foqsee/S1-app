@@ -1,13 +1,13 @@
-import { View, Text, Button, TextInput } from 'react-native';
+import { View, Text, Button, TextInput, Switch } from 'react-native';
 import { getConfig, setConfig } from '../util/settings';
 import { useEffect, useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
-
-
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Tab() {
   const [openaiApiKey, setOpenaiApiKey] = useState<string | undefined>();
   const [llmModel, setLlmModel] = useState<string | undefined>();
+  const { theme, toggleTheme } = useTheme();
 
   async function saveConfigs() {
     console.log('Saving configs..');
@@ -63,6 +63,14 @@ export default function Tab() {
 
       </View>
 
+      <View className="mb-4">
+        <Text className="text-white">Theme</Text>
+        <Text className="text-gray-600 mb-2">Toggle between dark and light theme</Text>
+        <Switch
+          value={theme === 'dark'}
+          onValueChange={toggleTheme}
+        />
+      </View>
 
       <Button onPress={saveConfigs} title='Save configs' />
     </View>
