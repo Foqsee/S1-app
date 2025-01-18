@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { View, Button, Text, Image } from 'react-native';
-import { Audio } from 'expo-av';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import * as Speech from 'expo-speech';
 
 import { getConfig } from '../util/settings';
 import { oaTranscribeRecording } from '../util/openai';
+import { useTheme } from '../../context/ThemeContext';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
+import { startRecording, stopRecording, playRecording } from '../util/audio';
 
 export default function Tab() {
   const [recording, setRecording] = useState<Audio.Recording | undefined>();
@@ -12,46 +15,24 @@ export default function Tab() {
   const [recordingUri, setRecordingUri] = useState<string | undefined>();
   const [transcription, setTranscription] = useState<string | undefined>();
   const [transcribing, setTranscribing] = useState<boolean>(false);
+  const { theme } = useTheme();
 
-
-  async function startRecording() {
-    try {
-      if (permissionResponse.status !== 'granted') {
-        console.log('Requesting permission..');
-        await requestPermission();
-      }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      console.log('Starting recording..');
-      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
-      console.log('Recording started');
-    } catch (err) {
-      console.error('Failed to start recording', err);
+  async function handleStartRecording() {
+    const { recording, permissionResponse } = await startRecording(requestPermission);
+    setRecording(recording);
+    if (permissionResponse) {
+      setPermissionResponse(permissionResponse);
     }
   }
 
-  async function stopRecording() {
-    console.log('Stopping recording..');
+  async function handleStopRecording() {
+    const uri = await stopRecording(recording);
     setRecording(undefined);
-    await recording.stopAndUnloadAsync();
-    await Audio.setAudioModeAsync(
-      {
-        allowsRecordingIOS: false,
-      }
-    );
-    const uri = recording.getURI();
     setRecordingUri(uri);
-    console.log('Recording stopped and stored at', uri);
   }
 
-  async function playRecoding() {
-    const { sound } = await Audio.Sound.createAsync({ uri: recordingUri, name: 'recording', type: 'audio/m4a' });
-    await sound.playAsync();
+  async function handlePlayRecording() {
+    await playRecording(recordingUri);
   }
 
   async function transcribeRecording() {
@@ -67,34 +48,75 @@ export default function Tab() {
       const tempTranscription = (await response).text;
       console.log('Transcription:', tempTranscription);
 
+      setTranscription(tempTranscription);
+
       setTranscribing(false);
 
     } catch (err) {
       console.error('Failed to transcribe recording', err);
     }
   }
-  //
-  //
+
+  const styles = StyleSheet.create({
+    container: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      flex: 1,
+      backgroundColor: theme === 'dark' ? '#000' : '#fff',
+    },
+    image: {
+      width: 50,
+      height: 50,
+    },
+    flexContainer: {
+      flex: 1,
+    },
+    marginBottom: {
+      marginBottom: 4,
+    },
+    buttonColor: {
+      color: theme === 'dark' ? '#0ea5e9' : '#000',
+    },
+    buttonColorFixed: {
+      color: '#1430B9',
+    },
+    transcriptionContainer: {
+      marginBottom: 4,
+      padding: 4,
+      borderRadius: 4,
+      marginTop: 6,
+      backgroundColor: theme === 'dark' ? '#000' : '#fff',
+    },
+    fontBold: {
+      fontWeight: 'bold',
+      color: theme === 'dark' ? '#fff' : '#000',
+    },
+    fontItalic: {
+      fontStyle: 'italic',
+      color: theme === 'dark' ? '#fff' : '#000',
+    },
+  });
 
   return (
-    <View style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }}>
-      <Image source={require('../../assets/icon-transparent.png')} style={{ width: 200, height: 200 }} />
+    <View style={styles.container}>
+      <Image source={require('../../assets/icon-transparent.png')} style={styles.image} />
 
-      <View className="flex">
-        <View className="mb-4">
+      <View style={styles.flexContainer}>
+        <View style={styles.marginBottom}>
           <Button
             title={recording ? 'Stop Recording' : 'Start Recording'}
-            onPress={recording ? stopRecording : startRecording}
+            onPress={recording ? handleStopRecording : handleStartRecording}
+            color={styles.buttonColor.color}
           />
         </View>
-        <Button title='Transcribe recording' color='#1430B9' onPress={transcribeRecording} />
+        <Button title='Transcribe recording' color={styles.buttonColorFixed.color} onPress={transcribeRecording} />
       </View>
 
-      <View className="mb-4 bg-white p-4 rounded-md mt-6">
-        {transcribing ? <Text className="font-semibold">Transcribing..</Text> :
+      <View style={styles.transcriptionContainer}>
+        {transcribing ? <Text style={styles.fontBold}>Transcribing..</Text> :
           <>
-            <Text className="font-semibold">Transcription:</Text>
-            <Text className="italic">{transcription}</Text>
+            <Text style={styles.fontBold}>Transcription:</Text>
+            <Text style={styles.fontItalic}>{transcription}</Text>
           </>
         }
       </View>
