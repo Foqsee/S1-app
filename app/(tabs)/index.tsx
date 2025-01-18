@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { View, Button, Text, Image } from 'react-native';
-import { Audio } from 'expo-av';
+import { Video } from 'expo-video';
 import * as Speech from 'expo-speech';
 
 import { getConfig } from '../util/settings';
 import { oaTranscribeRecording } from '../util/openai';
 
 export default function Tab() {
-  const [recording, setRecording] = useState<Audio.Recording | undefined>();
-  const [permissionResponse, requestPermission] = Audio.usePermissions();
+  const [recording, setRecording] = useState<Video.Recording | undefined>();
+  const [permissionResponse, requestPermission] = Video.usePermissions();
   const [recordingUri, setRecordingUri] = useState<string | undefined>();
   const [transcription, setTranscription] = useState<string | undefined>();
   const [transcribing, setTranscribing] = useState<boolean>(false);
@@ -20,13 +20,13 @@ export default function Tab() {
         console.log('Requesting permission..');
         await requestPermission();
       }
-      await Audio.setAudioModeAsync({
+      await Video.setVideoModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
 
       console.log('Starting recording..');
-      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY
+      const { recording } = await Video.Recording.createAsync(Video.RecordingOptionsPresets.HIGH_QUALITY
       );
       setRecording(recording);
       console.log('Recording started');
@@ -39,7 +39,7 @@ export default function Tab() {
     console.log('Stopping recording..');
     setRecording(undefined);
     await recording.stopAndUnloadAsync();
-    await Audio.setAudioModeAsync(
+    await Video.setVideoModeAsync(
       {
         allowsRecordingIOS: false,
       }
@@ -50,7 +50,7 @@ export default function Tab() {
   }
 
   async function playRecoding() {
-    const { sound } = await Audio.Sound.createAsync({ uri: recordingUri, name: 'recording', type: 'audio/m4a' });
+    const { sound } = await Video.Sound.createAsync({ uri: recordingUri, name: 'recording', type: 'video/mp4' });
     await sound.playAsync();
   }
 
@@ -60,7 +60,7 @@ export default function Tab() {
       setTranscribing(true);
       const fileData = await fetch(recordingUri);
       const blob = await fileData.blob();
-      const file = new File([blob], 'recording', { type: 'audio/m4a', lastModified: Date.now() });
+      const file = new File([blob], 'recording', { type: 'video/mp4', lastModified: Date.now() });
 
       const response = oaTranscribeRecording(file);
 
